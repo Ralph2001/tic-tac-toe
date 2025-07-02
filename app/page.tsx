@@ -1,103 +1,227 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import Board from "@/components/Board";
+import { BoardState, Player, Scoreboard, WinResult } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import ConfettiExplosion from "react-confetti-explosion";
+import { Plus_Jakarta_Sans } from "next/font/google";
+
+const initialBoard: BoardState = Array(9).fill(null);
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+});
+
+const checkWinner = (board: BoardState): WinResult | null => {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+
+  for (const [a, b, c] of lines) {
+    if (board[a] && board[a] === board[b] && board[b] === board[c]) {
+      return { winner: board[a], line: [a, b, c] };
+    }
+  }
+
+  return null;
+};
+
+const getInitialScore = (): Scoreboard => {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("scoreboard");
+    if (stored) return JSON.parse(stored);
+  }
+  return { X: 0, O: 0, draws: 0 };
+};
+
+const saveScore = (score: Scoreboard) => {
+  localStorage.setItem("scoreboard", JSON.stringify(score));
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [board, setBoard] = useState<BoardState>(initialBoard);
+  const [currentPlayer, setCurrentPlayer] = useState<Player>("X");
+  const [winnerData, setWinnerData] = useState<WinResult | null>(null);
+  const [score, setScore] = useState<Scoreboard>(getInitialScore);
+  const isDraw = board.every(Boolean) && !winnerData;
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const result = checkWinner(board);
+    if (result) {
+      setWinnerData(result);
+      setScore((prev) => ({
+        ...prev,
+        [result.winner!]: prev[result.winner!] + 1,
+      }));
+    } else if (isDraw) {
+      setScore((prev) => ({ ...prev, draws: prev.draws + 1 }));
+    }
+  }, [board]);
+
+  useEffect(() => {
+    saveScore(score);
+  }, [score]);
+
+  const handleClick = (index: number) => {
+    if (board[index] || winnerData) return;
+
+    const updatedBoard = [...board];
+    updatedBoard[index] = currentPlayer;
+    setBoard(updatedBoard);
+    setCurrentPlayer(currentPlayer === "X" ? "O" : "X");
+  };
+
+  const resetGame = () => {
+    setBoard(initialBoard);
+    setCurrentPlayer("X");
+    setWinnerData(null);
+  };
+
+  const resetScoreboard = () => {
+    const cleared = { X: 0, O: 0, draws: 0 };
+    setScore(cleared);
+    saveScore(cleared);
+  };
+
+  const hasStarted = board.some((cell) => cell !== null);
+
+  return (
+    <main
+      className={`  flex min-h-screen  max-w-screen-md mx-auto flex-col items-center relative justify-center p-4  gap-2 text-foreground ${jakarta.variable} font-sans`}
+    >
+      {winnerData && (
+        <div className="absolute z-50">
+          <ConfettiExplosion
+            force={0.8}
+            duration={2500}
+            particleCount={100}
+            width={1600}
+            portal
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      )}
+      <div className="h-16 flex flex-col  items-center justify-center mb-2">
+        <h1 className="text-2xl font-bold text-neutral-800">Tic Tac Toe</h1>
+        <p className="text-md text-neutral-500">
+          Challenge a friend. Take turns. Claim the win.
+        </p>
+      </div>
+      <div className="h-10  w-full flex justify-center">
+        {winnerData ? (
+          <p className="text-green-600 font-medium">
+            🎉 Player {winnerData.winner} wins!
+          </p>
+        ) : isDraw ? (
+          <p className="text-yellow-500 font-medium">😐 It's a draw!</p>
+        ) : (
+          <p className="text-sm text-center text-zinc-500">
+            Turn:
+            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-md font-medium bg-zinc-100 text-zinc-800">
+              {currentPlayer}
+            </span>
+          </p>
+        )}
+      </div>
+      <div className="grow grid-cols-1 gap-6 justify-center items-center  h-full grid md:grid-cols-2">
+        <div className="flex flex-col p-2  rounded-2xl">
+          <Board
+            board={board}
+            onClick={handleClick}
+            winningLine={winnerData?.line}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        </div>
+
+        <div className=" h-full justify-center flex flex-col   gap-4 w-full ">
+          <div className="w-24 h-12 mt-auto">
+            <span
+              className={`text-xs font-medium px-2.5 py-0.5 rounded-sm ${
+                hasStarted && !winnerData && !isDraw
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {hasStarted && !winnerData && !isDraw ? "Playing" : "Idle"}
+            </span>
+          </div>
+          <div className="font-medium tracking-wide text-center ">
+            Scoreboard
+          </div>
+
+          <div className="grid w-full grid-cols-3">
+            {/* Player X */}
+            <div className="flex justify-center items-center flex-col gap-2">
+              <div className="relative flex justify-center items-center">
+                <div className="absolute z-10 h-12 w-12 rounded-full bg-gray-100 shadow-inner"></div>
+                <div className="z-20 h-10 w-10 rounded-full bg-blue-500 shadow-md"></div>
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mt-2">
+                Player X
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-center items-center gap-2">
+              <div className="grid grid-cols-3 items-start justify-center h-full w-full">
+                <p className="text-3xl text-center font-semibold text-gray-700">
+                  {score.X}
+                </p>
+                <p className="text-xl text-center font-semibold text-gray-500">
+                  :
+                </p>
+                <p className="text-3xl text-center font-semibold text-gray-700">
+                  {score.O}
+                </p>
+              </div>
+              <p className="text-md font-medium text-yellow-500 ">
+                {score.draws}
+              </p>
+            </div>
+
+            {/* Player O */}
+            <div className="flex justify-center items-center flex-col gap-2">
+              <div className="relative flex justify-center items-center">
+                <div className="absolute z-10 h-12 w-12 rounded-full bg-gray-100 shadow-inner"></div>
+                <div className="z-20 h-10 w-10 rounded-full bg-rose-500 shadow-md"></div>
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mt-2">
+                Player O
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2 w-full mt-auto mb-auto">
+            <Button
+              variant="secondary"
+              onClick={resetScoreboard}
+              className="w-1/2"
+            >
+              Reset
+            </Button>
+            <Button
+              variant="default"
+              disabled={!winnerData && !isDraw}
+              onClick={resetGame}
+              className="w-1/2 bg-green-600 hover:bg-green-700 text-white"
+            >
+              Continue
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className=" h-auto  mt-4 md:h-12 ">
+        <p className="text-neutral-400 text-sm">
+          Created by Ralph A. Villanueva
+        </p>
+      </div>
+    </main>
   );
 }
