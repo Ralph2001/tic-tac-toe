@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ConfettiExplosion from "react-confetti-explosion";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import clsx from "clsx";
 
 const initialBoard: BoardState = Array(9).fill(null);
 
@@ -97,7 +98,7 @@ export default function Home() {
 
   return (
     <main
-      className={`  flex min-h-screen  max-w-screen-md mx-auto flex-col items-center relative justify-center p-4  gap-2 text-foreground ${jakarta.variable} font-sans`}
+      className={`  flex min-h-screen  max-w-screen-md mx-auto  flex-col items-center relative justify-center p-4  gap-2 text-foreground ${jakarta.variable} font-sans`}
     >
       {winnerData && (
         <div className="absolute z-50">
@@ -126,7 +127,17 @@ export default function Home() {
         ) : (
           <p className="text-sm text-center text-zinc-500">
             Turn:
-            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-md font-medium bg-zinc-100 text-zinc-800">
+            <span
+              className={clsx(
+                currentPlayer === "X"
+                  ? "bg-blue-500 text-white"
+                  : currentPlayer === "O"
+                  ? "bg-red-500 text-white"
+                  : "bg-gray-200",
+                "ml-1 inline-flex items-center px-2 py-0.5 rounded text-md font-medium "
+              )}
+              // className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-md font-medium  text-zinc-800"
+            >
               {currentPlayer}
             </span>
           </p>
